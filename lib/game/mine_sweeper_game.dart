@@ -5,9 +5,14 @@ import 'package:flame/components.dart';
 import 'package:flame/experimental.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
+import 'package:flame_audio/audio_pool.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:mine_sweeper/game/bloc/game_bloc.dart';
 import 'package:mine_sweeper/game/board_square_controller.dart';
+import 'package:mine_sweeper/game/game_setup.dart';
+
+enum GameDifficulty { beginner, easy, intermediate, expert, custom }
 
 final Vector2 boxSize = Vector2(17, 17);
 
@@ -16,11 +21,12 @@ class GameBoardCreator extends Component with HasGameRef<MineSweeperGame> {
   Future<void>? onLoad() async {
     final World world = World();
 
-    int bombProbability = 2;
     int maxProbability = 15;
     Random random = Random();
 
     late int bombCount = 0;
+    final double rowCount = gameRef.gameSetup.boardInfo.rowCount;
+    final double columnCount = gameRef.gameSetup.boardInfo.columnCount;
 
     List<List<BoardSquareController>> gameBoard = [];
 
@@ -28,7 +34,8 @@ class GameBoardCreator extends Component with HasGameRef<MineSweeperGame> {
       List<BoardSquareController> boardColumn =
           List.generate(rowCount.toInt(), (j) {
         int randomNumber = random.nextInt(maxProbability);
-        bool hasBomb = randomNumber < bombProbability;
+        bool hasBomb =
+            randomNumber < gameRef.gameSetup.boardInfo.bombProbability;
         bombCount = hasBomb ? bombCount + 1 : bombCount;
 
         return BoardSquareController(
@@ -40,19 +47,19 @@ class GameBoardCreator extends Component with HasGameRef<MineSweeperGame> {
       gameBoard.add(boardColumn);
     });
 
-    _calculateBombsAround(gameBoard);
+    _calculateBombsAround(gameBoard, rowCount, columnCount);
     for (var element in gameBoard) {
       world.addAll(element);
     }
 
-    double boardWidth = 17 * columnCount;
-    double boardHeight = 17 * rowCount;
     int zoomCount = 0;
 
     add(world);
 
     final camera = CameraComponent(world: world)
-      ..viewfinder.visibleGameSize = Vector2(boardWidth, boardHeight)
+      ..viewfinder.visibleGameSize = Vector2(
+          gameRef.gameSetup.boardInfo.boardWidth,
+          gameRef.gameSetup.boardInfo.boardHeight)
       ..viewfinder.position = Vector2(0, 0)
       ..viewfinder.anchor = Anchor.topLeft;
     await add(camera);
@@ -60,7 +67,11 @@ class GameBoardCreator extends Component with HasGameRef<MineSweeperGame> {
     gameRef.gameBloc.add(OnAddBombCount(bombCount));
   }
 
-  _calculateBombsAround(List<List<BoardSquareController>> board) {
+  _calculateBombsAround(
+    List<List<BoardSquareController>> board,
+    double rowCount,
+    double columnCount,
+  ) {
     for (int i = 0; i < columnCount; i++) {
       for (int j = 0; j < rowCount; j++) {
         if (i > 0 && j > 0) {
@@ -119,43 +130,31 @@ class GameStatusController extends Component with HasGameRef<MineSweeperGame> {
   @override
   Future<void>? onLoad() async {
     add(
-      FlameBlocListener<GameBloc, GameBlocState>(
+      FlameBlocListener<GameBloc, GameState>(
         listenWhen: (previousState, newState) {
           return /*previousState.gameStatus != newState.gameStatus &&*/
               newState.gameStatus == GameStatus.reset;
         },
         onNewState: (state) {
-          gameRef.children.forEach((element) {
-            element.children.forEach((element) {
-              print(element);
-            });
-          });
+          gameRef.reset();
         },
       ),
     );
   }
 }
 
-const double columnCount = 5; //10;
-const double rowCount = 9; //18;
+/*const double columnCount = 10;
+const double rowCount = 18;*/
 
-class MineSweeperGame extends FlameGame with HasTappableComponents {
-  MineSweeperGame({required this.gameBloc});
-
-  @override
-  Color backgroundColor() => const Color.fromRGBO(0, 0, 0, 1);
-
+class MineSweeperWorld extends Component with HasGameRef<MineSweeperGame> {
   final GameBloc gameBloc;
-
+  MineSweeperWorld(this.gameBloc);
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    await Flame.images.load('minesweeper-sprite.png');
-
-    await add(
+    add(
       FlameMultiBlocProvider(providers: [
-        FlameBlocProvider<GameBloc, GameBlocState>.value(
+        FlameBlocProvider<GameBloc, GameState>.value(
           value: gameBloc,
         ),
       ], children: [
@@ -164,10 +163,50 @@ class MineSweeperGame extends FlameGame with HasTappableComponents {
       ]),
     );
   }
+}
+
+class MineSweeperGame extends FlameGame with HasTappableComponents {
+  MineSweeperGame({
+    required this.gameBloc,
+    required this.gameSetup,
+  });
+
+  @override
+  // TODO: implement longTapDelay
+  double get longTapDelay => 0.200;
+
+  @override
+  Color backgroundColor() => const Color.fromRGBO(0, 0, 0, 1);
+
+  final GameBloc gameBloc;
+  final GameSetup gameSetup;
+  late AudioPool pool;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+    await FlameAudio.audioCache.load('music-tempo.mp3');
+    //_startBackgroundMusic();
+
+    await Flame.images.load('minesweeper-sprite.png');
+
+    await add(MineSweeperWorld(gameBloc));
+  }
+
+  void _startBackgroundMusic() {
+    FlameAudio.bgm.initialize();
+    FlameAudio.bgm.play('music-tempo.mp3');
+  }
 
   _onCameraZoom() {
     /* camera.viewfinder.visibleGameSize =
         Vector2(boardWidth + 10, boardHeight + 10);*/
+  }
+
+  reset() {
+    removeWhere((component) => component is MineSweeperWorld);
+    add(MineSweeperWorld(gameBloc));
   }
 }
 

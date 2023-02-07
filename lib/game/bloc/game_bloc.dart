@@ -2,13 +2,12 @@ import 'package:equatable/equatable.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:mine_sweeper/game/mine_sweeper_game.dart';
 
-part 'game_bloc_event.dart';
-part 'game_bloc_state.dart';
+part 'game_event.dart';
+part 'game_state.dart';
 
-class GameBloc extends Bloc<GameBlocEvent, GameBlocState> {
-  GameBloc() : super(const GameBlocState.empty()) {
+class GameBloc extends Bloc<GameEvent, GameState> {
+  GameBloc() : super(const GameState.empty()) {
     on<OnFlagPressed>((event, emit) {
       emit(state.copyWith(
         nbFlags: event.flagAdded ? state.nbFlags + 1 : state.nbFlags - 1,
@@ -29,23 +28,19 @@ class GameBloc extends Bloc<GameBlocEvent, GameBlocState> {
     });
 
     on<OnRevealSquare>((event, emit) {
-      print('revealedSquares');
-      print(state.revealedSquares);
-      print('nbBombs');
-      print(state.nbBombs);
-      if ((state.revealedSquares + 1) + state.nbBombs ==
-          (columnCount * rowCount)) {
-        emit(
-          state.copyWith(
-            revealedSquares: state.revealedSquares + 1,
-            gameStatus: GameStatus.win,
-          ),
-        );
-      } else {
-        emit(state.copyWith(
+      bool isWon = (state.revealedSquares + 1) + state.nbBombs ==
+          (event.columnCount * event.rowCount);
+      bool isReset = state.gameStatus == GameStatus.reset;
+      emit(
+        state.copyWith(
           revealedSquares: state.revealedSquares + 1,
-        ));
-      }
+          gameStatus: isWon
+              ? GameStatus.win
+              : isReset
+                  ? GameStatus.playing
+                  : state.gameStatus,
+        ),
+      );
     });
 
     on<OnBombHit>((event, emit) {
@@ -58,12 +53,16 @@ class GameBloc extends Bloc<GameBlocEvent, GameBlocState> {
     on<OnReset>((event, emit) {
       emit(state.copyWith(
         gameStatus: GameStatus.reset,
+        isBombHit: false,
+        nbFlags: 0,
+        revealedSquares: 0,
+        placementInGrid: null,
       ));
     });
   }
 
   @override
-  void onTransition(Transition<GameBlocEvent, GameBlocState> transition) {
+  void onTransition(Transition<GameEvent, GameState> transition) {
     // TODO: implement onTransition
     print(transition);
     super.onTransition(transition);

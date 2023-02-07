@@ -1,8 +1,12 @@
 import 'dart:async';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_dialogs/widgets/buttons/icon_button.dart';
+import 'package:material_dialogs/widgets/buttons/icon_outline_button.dart';
 import 'package:mine_sweeper/game/bloc/game_bloc.dart';
+import 'package:mine_sweeper/game/bloc/timer/timer_bloc.dart';
 import 'package:mine_sweeper/game/mine_sweeper_game.dart';
 
 class Header extends StatefulWidget {
@@ -21,7 +25,7 @@ class _HeaderState extends State<Header> {
     GameStatus.win: '😎',
   };
 
-  late Stream clock;
+  late Stream? clock;
   int seconds = 0;
 
   @override
@@ -31,93 +35,121 @@ class _HeaderState extends State<Header> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocConsumer<GameBloc, GameBlocState>(
-        builder: (context, state) {
-          return Row(
+    return BlocConsumer<GameBloc, GameState>(builder: (context, state) {
+      return Row(
+        children: [
+          IconButton(
+            padding: EdgeInsets.zero,
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+              BlocProvider.of<TimerBloc>(context).add(TimerStop());
+              BlocProvider.of<TimerBloc>(context).add(TimerReset());
+              context.router.pop();
+            },
+          ),
+          const Spacer(),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black,
+              border: Border.all(color: Colors.red),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Text(
+                '${state.nbBombs - state.nbFlags}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+          const Spacer(),
+          Expanded(
+            child: TextButton(
+              onPressed: () async {
+                bool? reset = true;
+                if (state.gameStatus == GameStatus.playing) {
+                  reset = await showDialog<bool>(
+                      builder: (_) => _confirmResetDialog(), context: context);
+                }
+
+                if (reset == true) {
+                  widget.game.gameBloc.add(OnReset());
+                }
+              },
+              child: Text(
+                gameStatus[state.gameStatus] ?? '',
+                style: const TextStyle(
+                  fontSize: 40,
+                ),
+              ),
+            ),
+          ),
+          const Spacer(),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black,
+              border: Border.all(color: Colors.red),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Text(
+                '${context.select((TimerBloc bloc) => bloc.state.duration)}', //'${state.duration}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          ),
+          const Spacer(
+            flex: 2,
+          ),
+        ],
+      );
+    }, listener: (context, state) {
+      if (state.gameStatus == GameStatus.dead ||
+          state.gameStatus == GameStatus.win) {
+        BlocProvider.of<TimerBloc>(context).add(TimerStop());
+      } else if (state.gameStatus == GameStatus.playing &&
+          state.revealedSquares == 1) {
+        BlocProvider.of<TimerBloc>(context).add(TimerStarted());
+      } else if (state.gameStatus == GameStatus.reset) {
+        BlocProvider.of<TimerBloc>(context).add(TimerReset());
+      }
+    });
+  }
+
+  AlertDialog _confirmResetDialog() => AlertDialog(
+        title: const Center(child: Text("Restart ? ")),
+        actions: [
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  border: Border.all(color: Colors.red),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Text(
-                    '${state.nbFlags}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
+              IconsOutlineButton(
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+                text: 'Cancel',
+                iconData: Icons.cancel_outlined,
+                textStyle: const TextStyle(color: Colors.grey),
+                iconColor: Colors.grey,
               ),
-              Expanded(
-                child: TextButton(
-                  onPressed: () {
-                    widget.game.gameBloc.add(OnReset());
-                  },
-                  child: Text(
-                    gameStatus[state.gameStatus] ?? '',
-                    style: const TextStyle(
-                      fontSize: 40,
-                    ),
-                  ),
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  border: Border.all(color: Colors.red),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: StreamBuilder(
-                    stream: clock,
-                    builder: (context, snapshot) {
-                      seconds++;
-
-                      return Text(
-                        '$seconds',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white),
-                      );
-                    },
-                  ),
-                ),
+              IconsButton(
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+                text: "Restart",
+                iconData: Icons.loop,
+                color: Colors.red,
+                textStyle: const TextStyle(color: Colors.white),
+                iconColor: Colors.white,
               ),
             ],
-          );
-        },
-        listener: (context, state) {});
-  }
+          ),
+        ],
+      );
 }
-
-/*class HeaderController extends Component
-    with
-        HasGameRef<MineSweeperGame>,
-        FlameBlocListenable<GameBloc, GameBlocState> {
-  @override
-  Future<void> onLoad() async {
-    add(Smiley());
-    return super.onLoad();
-  }
-
-  TextPaint textPaint = TextPaint(
-    style: const TextStyle(
-      fontSize: 12.0,
-      fontFamily: 'Awesome Font',
-      color: Colors.black,
-    ),
-  );
-  @override
-  void render(Canvas canvas) {
-    Rect rect = const Rect.fromLTWH(5, 0, 30, 15);
-    canvas.drawRect(rect, Paint()..color = const Color(0xFFFF00FF));
-    textPaint.render(
-      canvas,
-      gameRef.gameBloc.state.nbFlags.toString(),
-      Vector2(16, 1),
-    );
-    super.render(canvas);
-  }
-}*/

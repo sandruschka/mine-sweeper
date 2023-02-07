@@ -8,7 +8,7 @@ enum GameStatus {
 }
 
 @immutable
-class GameBlocState extends Equatable {
+class GameState extends Equatable {
   final int nbFlags;
   final int nbBombs;
   final Vector2? placementInGrid;
@@ -16,7 +16,7 @@ class GameBlocState extends Equatable {
   final int revealedSquares;
   final GameStatus gameStatus;
 
-  const GameBlocState.empty()
+  const GameState.empty()
       : nbFlags = 0,
         nbBombs = 0,
         placementInGrid = null,
@@ -24,7 +24,7 @@ class GameBlocState extends Equatable {
         revealedSquares = 0,
         gameStatus = GameStatus.playing;
 
-  const GameBlocState({
+  const GameState({
     this.nbFlags = 0,
     this.nbBombs = 0,
     this.placementInGrid,
@@ -33,7 +33,7 @@ class GameBlocState extends Equatable {
     this.gameStatus = GameStatus.playing,
   });
 
-  GameBlocState copyWith({
+  GameState copyWith({
     int? nbFlags,
     int? nbBombs,
     Vector2? placementInGrid,
@@ -41,7 +41,7 @@ class GameBlocState extends Equatable {
     int? revealedSquares,
     GameStatus? gameStatus,
   }) {
-    return GameBlocState(
+    return GameState(
       nbFlags: nbFlags ?? this.nbFlags,
       nbBombs: nbBombs ?? this.nbBombs,
       placementInGrid: placementInGrid ?? this.placementInGrid,

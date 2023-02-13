@@ -14,7 +14,7 @@ class TimerReset extends TimerEvent {}
 class TimerStop extends TimerEvent {}
 
 class TimerTicked extends TimerEvent {
-  final int duration;
+  final double duration;
   const TimerTicked(this.duration);
 
   @override

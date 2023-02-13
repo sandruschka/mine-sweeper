@@ -20,19 +20,13 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       ));
     });
 
-    on<OnRevealSurroundingSquares>((event, emit) {
-      emit(state.copyWith(
-        placementInGrid: event.placementInGrid,
-        revealedSquares: state.revealedSquares + 1,
-      ));
-    });
-
     on<OnRevealSquare>((event, emit) {
       bool isWon = (state.revealedSquares + 1) + state.nbBombs ==
           (event.columnCount * event.rowCount);
       bool isReset = state.gameStatus == GameStatus.reset;
       emit(
         state.copyWith(
+          placementInGrid: event.placementInGrid,
           revealedSquares: state.revealedSquares + 1,
           gameStatus: isWon
               ? GameStatus.win
@@ -58,13 +52,15 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         revealedSquares: 0,
         placementInGrid: null,
       ));
+      print("state: $state");
     });
   }
 
   @override
   void onTransition(Transition<GameEvent, GameState> transition) {
     // TODO: implement onTransition
-    print(transition);
+    print(transition.nextState);
+
     super.onTransition(transition);
   }
 }

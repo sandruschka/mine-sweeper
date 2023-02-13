@@ -8,9 +8,11 @@ import 'package:flame/game.dart';
 import 'package:flame_audio/audio_pool.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flame_bloc/flame_bloc.dart';
+import 'package:flutter/material.dart';
 import 'package:mine_sweeper/game/bloc/game_bloc.dart';
-import 'package:mine_sweeper/game/board_square_controller.dart';
+import 'package:mine_sweeper/game/board_square_manager.dart';
 import 'package:mine_sweeper/game/game_setup.dart';
+import 'package:mine_sweeper/game/game_status_listener.dart';
 
 enum GameDifficulty { beginner, easy, intermediate, expert, custom }
 
@@ -28,17 +30,17 @@ class GameBoardCreator extends Component with HasGameRef<MineSweeperGame> {
     final double rowCount = gameRef.gameSetup.boardInfo.rowCount;
     final double columnCount = gameRef.gameSetup.boardInfo.columnCount;
 
-    List<List<BoardSquareController>> gameBoard = [];
+    List<List<BoardSquareManager>> gameBoard = [];
 
     List.generate(columnCount.toInt(), (i) {
-      List<BoardSquareController> boardColumn =
+      List<BoardSquareManager> boardColumn =
           List.generate(rowCount.toInt(), (j) {
         int randomNumber = random.nextInt(maxProbability);
         bool hasBomb =
             randomNumber < gameRef.gameSetup.boardInfo.bombProbability;
         bombCount = hasBomb ? bombCount + 1 : bombCount;
 
-        return BoardSquareController(
+        return BoardSquareManager(
           hasBomb: hasBomb,
           position: Vector2(i * boxSize.x, (j) * boxSize.y),
           placementInGrid: Vector2(i.toDouble(), j.toDouble()),
@@ -68,7 +70,7 @@ class GameBoardCreator extends Component with HasGameRef<MineSweeperGame> {
   }
 
   _calculateBombsAround(
-    List<List<BoardSquareController>> board,
+    List<List<BoardSquareManager>> board,
     double rowCount,
     double columnCount,
   ) {
@@ -126,26 +128,6 @@ class GameBoardCreator extends Component with HasGameRef<MineSweeperGame> {
   }
 }
 
-class GameStatusController extends Component with HasGameRef<MineSweeperGame> {
-  @override
-  Future<void>? onLoad() async {
-    add(
-      FlameBlocListener<GameBloc, GameState>(
-        listenWhen: (previousState, newState) {
-          return /*previousState.gameStatus != newState.gameStatus &&*/
-              newState.gameStatus == GameStatus.reset;
-        },
-        onNewState: (state) {
-          gameRef.reset();
-        },
-      ),
-    );
-  }
-}
-
-/*const double columnCount = 10;
-const double rowCount = 18;*/
-
 class MineSweeperWorld extends Component with HasGameRef<MineSweeperGame> {
   final GameBloc gameBloc;
   MineSweeperWorld(this.gameBloc);
@@ -158,7 +140,7 @@ class MineSweeperWorld extends Component with HasGameRef<MineSweeperGame> {
           value: gameBloc,
         ),
       ], children: [
-        GameStatusController(),
+        GameStatusListener(),
         GameBoardCreator(),
       ]),
     );
@@ -172,7 +154,6 @@ class MineSweeperGame extends FlameGame with HasTappableComponents {
   });
 
   @override
-  // TODO: implement longTapDelay
   double get longTapDelay => 0.200;
 
   @override

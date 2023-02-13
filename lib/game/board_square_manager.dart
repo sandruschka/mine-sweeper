@@ -6,12 +6,12 @@ import 'package:mine_sweeper/game/components/components.dart';
 import 'package:mine_sweeper/game/game_setup.dart';
 import 'package:mine_sweeper/game/mine_sweeper_game.dart';
 
-class BoardSquareController extends PositionComponent
+class BoardSquareManager extends PositionComponent
     with
         TapCallbacks,
         HasGameRef<MineSweeperGame>,
         FlameBlocListenable<GameBloc, GameState> {
-  BoardSquareController({
+  BoardSquareManager({
     this.hasBomb = false,
     this.bombsAround = 0,
     required this.placementInGrid,
@@ -44,7 +44,11 @@ class BoardSquareController extends PositionComponent
       }
       if (bombsAround == 0) {
         add(EmptyBox()..clicked());
-        gameRef.gameBloc.add(OnRevealSurroundingSquares(placementInGrid));
+        gameRef.gameBloc.add(OnRevealSquare(
+          rowCount: boardInfo.rowCount,
+          columnCount: boardInfo.columnCount,
+          placementInGrid: placementInGrid,
+        ));
       } else {
         gameRef.gameBloc.add(OnRevealSquare(
           rowCount: boardInfo.rowCount,
@@ -80,8 +84,10 @@ class BoardSquareController extends PositionComponent
 
   @override
   void onTapUp(TapUpEvent event) {
+    // Prevent user tap interaction when the game is over
     if (gameRef.gameBloc.state.gameStatus == GameStatus.win ||
         gameRef.gameBloc.state.gameStatus == GameStatus.dead) return;
+
     if (!isLongTap) {
       if (hasBomb) {
         add(Bomb()..hit());
@@ -91,8 +97,9 @@ class BoardSquareController extends PositionComponent
         gameRef.gameBloc.add(OnRevealSquare(
           rowCount: boardInfo.rowCount,
           columnCount: boardInfo.columnCount,
+          placementInGrid: placementInGrid,
         ));
-        gameRef.gameBloc.add(OnRevealSurroundingSquares(placementInGrid));
+        //gameRef.gameBloc.add(OnRevealSurroundingSquares(placementInGrid));
       } else {
         gameRef.gameBloc.add(OnRevealSquare(
           rowCount: boardInfo.rowCount,

@@ -2,12 +2,12 @@ part of 'timer_bloc.dart';
 
 @immutable
 class TimerState extends Equatable {
-  final int duration;
+  final double duration;
 
   const TimerState(this.duration);
 
   TimerState copyWith({
-    int? duration,
+    double? duration,
   }) {
     return TimerState(duration ?? this.duration);
   }
@@ -21,5 +21,5 @@ class TimerInitial extends TimerState {
 }
 
 class TimerRunInProgress extends TimerState {
-  const TimerRunInProgress(int duration) : super(duration);
+  const TimerRunInProgress(double duration) : super(duration);
 }

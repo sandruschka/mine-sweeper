@@ -25,9 +25,10 @@ class AppRouter extends _i3.RootStackRouter {
   @override
   final Map<String, _i3.PageFactory> pagesMap = {
     Menu.name: (routeData) {
+      final args = routeData.argsAs<MenuArgs>(orElse: () => const MenuArgs());
       return _i3.MaterialPageX<dynamic>(
         routeData: routeData,
-        child: const _i1.Menu(),
+        child: _i1.Menu(key: args.key),
       );
     },
     Game.name: (routeData) {
@@ -57,14 +58,26 @@ class AppRouter extends _i3.RootStackRouter {
 
 /// generated route for
 /// [_i1.Menu]
-class Menu extends _i3.PageRouteInfo<void> {
-  const Menu()
+class Menu extends _i3.PageRouteInfo<MenuArgs> {
+  Menu({_i4.Key? key})
       : super(
           Menu.name,
           path: '/',
+          args: MenuArgs(key: key),
         );
 
   static const String name = 'Menu';
+}
+
+class MenuArgs {
+  const MenuArgs({this.key});
+
+  final _i4.Key? key;
+
+  @override
+  String toString() {
+    return 'MenuArgs{key: $key}';
+  }
 }
 
 /// generated route for

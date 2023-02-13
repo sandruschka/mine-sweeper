@@ -3,11 +3,15 @@ import 'dart:async';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:material_dialogs/widgets/buttons/icon_button.dart';
-import 'package:material_dialogs/widgets/buttons/icon_outline_button.dart';
+import 'package:mine_sweeper/di/injector.dart';
 import 'package:mine_sweeper/game/bloc/game_bloc.dart';
 import 'package:mine_sweeper/game/bloc/timer/timer_bloc.dart';
+import 'package:mine_sweeper/game/data_cache_manager.dart';
+import 'package:mine_sweeper/game/dialogs/new_high_score_dialog.dart';
+import 'package:mine_sweeper/game/dialogs/reset_confirmation_dialog.dart';
 import 'package:mine_sweeper/game/mine_sweeper_game.dart';
+import 'package:mine_sweeper/game/models/high_score_model.dart';
+import 'package:mine_sweeper/game/models/high_scores_model.dart';
 
 class Header extends StatefulWidget {
   final MineSweeperGame game;
@@ -27,6 +31,7 @@ class _HeaderState extends State<Header> {
 
   late Stream? clock;
   int seconds = 0;
+  final dataCacheManager = getIt<DataCacheManager>();
 
   @override
   void initState() {
@@ -75,7 +80,8 @@ class _HeaderState extends State<Header> {
                 bool? reset = true;
                 if (state.gameStatus == GameStatus.playing) {
                   reset = await showDialog<bool>(
-                      builder: (_) => _confirmResetDialog(), context: context);
+                      builder: (context) => confirmResetDialog(context),
+                      context: context);
                 }
 
                 if (reset == true) {
@@ -99,7 +105,9 @@ class _HeaderState extends State<Header> {
             child: Padding(
               padding: const EdgeInsets.all(10.0),
               child: Text(
-                '${context.select((TimerBloc bloc) => bloc.state.duration)}', //'${state.duration}',
+                context.select((TimerBloc bloc) {
+                  return (bloc.state.duration * 100).toStringAsFixed(1);
+                }),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red),
               ),
@@ -114,6 +122,10 @@ class _HeaderState extends State<Header> {
       if (state.gameStatus == GameStatus.dead ||
           state.gameStatus == GameStatus.win) {
         BlocProvider.of<TimerBloc>(context).add(TimerStop());
+        if (state.gameStatus == GameStatus.win &&
+            ModalRoute.of(context)?.isCurrent == true) {
+          saveHighScore(BlocProvider.of<TimerBloc>(context).state.duration);
+        }
       } else if (state.gameStatus == GameStatus.playing &&
           state.revealedSquares == 1) {
         BlocProvider.of<TimerBloc>(context).add(TimerStarted());
@@ -123,33 +135,23 @@ class _HeaderState extends State<Header> {
     });
   }
 
-  AlertDialog _confirmResetDialog() => AlertDialog(
-        title: const Center(child: Text("Restart ? ")),
-        actions: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              IconsOutlineButton(
-                onPressed: () {
-                  Navigator.of(context).pop(false);
-                },
-                text: 'Cancel',
-                iconData: Icons.cancel_outlined,
-                textStyle: const TextStyle(color: Colors.grey),
-                iconColor: Colors.grey,
-              ),
-              IconsButton(
-                onPressed: () {
-                  Navigator.of(context).pop(true);
-                },
-                text: "Restart",
-                iconData: Icons.loop,
-                color: Colors.red,
-                textStyle: const TextStyle(color: Colors.white),
-                iconColor: Colors.white,
-              ),
-            ],
-          ),
-        ],
-      );
+  saveHighScore(double duration) async {
+    HighScores highScores;
+    if (await dataCacheManager.doesDataExist(highScoresDataKey) == true) {
+      Map<String, dynamic> highScoresMap =
+          await dataCacheManager.retrieveData(highScoresDataKey);
+      highScores = HighScores.fromJson(highScoresMap);
+    } else {
+      highScores = HighScores([]);
+    }
+
+    HighScore highScore = HighScore((duration * 100), DateTime.now());
+
+    highScores.highScores.add(highScore);
+    dataCacheManager.saveData(highScoresDataKey, highScores.toJson());
+    showDialog(
+      context: context,
+      builder: (context) => newHighScoreDialog(context, highScore.duration),
+    );
+  }
 }

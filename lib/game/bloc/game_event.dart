@@ -18,20 +18,26 @@ class OnAddBombCount extends GameEvent {
   List<int> get props => [bombCount];
 }
 
-class OnRevealSurroundingSquares extends GameEvent {
+/*class OnRevealSurroundingSquares extends GameEvent {
   OnRevealSurroundingSquares(this.placementInGrid);
 
   final Vector2 placementInGrid;
 
   List<Vector2> get props => [placementInGrid];
-}
+}*/
 
 class OnRevealSquare extends GameEvent {
   final double rowCount;
   final double columnCount;
-  OnRevealSquare({required this.rowCount, required this.columnCount});
+  final Vector2? placementInGrid;
 
-  List<Object> get props => [rowCount, columnCount];
+  OnRevealSquare({
+    required this.rowCount,
+    required this.columnCount,
+    this.placementInGrid,
+  });
+
+  List<Object?> get props => [rowCount, columnCount, placementInGrid];
 }
 
 class OnBombHit extends GameEvent {

@@ -44,7 +44,7 @@ class GameState extends Equatable {
     return GameState(
       nbFlags: nbFlags ?? this.nbFlags,
       nbBombs: nbBombs ?? this.nbBombs,
-      placementInGrid: placementInGrid ?? this.placementInGrid,
+      placementInGrid: placementInGrid,
       isBombHit: isBombHit ?? this.isBombHit,
       revealedSquares: revealedSquares ?? this.revealedSquares,
       gameStatus: gameStatus ?? this.gameStatus,

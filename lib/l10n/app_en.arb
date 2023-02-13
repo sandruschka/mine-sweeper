@@ -1,0 +1,11 @@
+{
+    "@@locale" : "en",
+
+    "start" : "Start",
+
+    "highScores" : "High Scores",
+
+    "newHighScore": "New high score!",
+
+    "restart" : "Start a new game ?"
+}
